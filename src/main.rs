@@ -1,6 +1,12 @@
 #[derive(Debug)]
 struct SudokuBoard {
-        rows: [[u32; 9]; 9],
+    rows: [[u32; 9]; 9],
+}
+
+// takes two vectors of possibly separate types, then produces a vector which
+// contains all the possible combinations of the elements.
+fn combinator<T: Copy, U: Copy>(l1: Vec<T>, l2: Vec<U>) -> Vec<(T, U)> {
+    l1.into_iter().flat_map(|x| l2.clone().into_iter().map(move |y| (x, y))).collect()
 }
 
 impl SudokuBoard {
@@ -23,28 +29,20 @@ impl SudokuBoard {
     }
 
     fn check_board(&self) -> bool {
-        // check rows first
-        for row_nbr in 0..9 {
-            if !self.check_row(row_nbr) {
-                return false;
-            }
-        }
+        self.check_rows() && self.check_columns() && self.check_regions()
+    }
 
-        for col_nbr in 0..9 {
-            if !self.check_column(col_nbr) {
-                return false;
-            }
-        }
+    fn check_regions(&self) -> bool {
+        let regions = combinator(vec![0, 1, 2], vec![0, 1, 2]);
+        regions.into_iter().all(|(col_nbr, row_nbr)| self.check_region(col_nbr, row_nbr))
+    }
 
-        for reg_col_nbr in 0..3 {
-            for reg_row_nbr in 0..3 {
-                if !self.check_region(reg_col_nbr, reg_row_nbr) {
-                    return false;
-                }
-            }
-        }
+    fn check_columns(&self) -> bool {
+        (0..9).all(|col_nbr| self.check_column(col_nbr))
+    }
 
-        true
+    fn check_rows(&self) -> bool {
+        (0..9).all(|row_nbr| self.check_row(row_nbr))
     }
 
     fn check_row(&self, row_nbr: usize) -> bool {
@@ -172,9 +170,7 @@ struct Solver<'a> {
 
 impl<'a> Solver<'a> {
     fn new(board: &'a mut SudokuBoard) -> Solver {
-        Solver {
-            board,
-        }
+        Solver { board }
     }
 
     fn solve(&mut self, curr_pos: BoardPos) -> bool {
